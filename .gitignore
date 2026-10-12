@@ -1,0 +1,95 @@
+# Environment and secrets (CRITICAL: NEVER COMMIT)
+.env
+.env.local
+*.env
+*.pem
+*.key
+
+# Python virtual environment, notebooks & cache
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Node & Frontend build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build artifacts & framework caches
+.output/
+frontend/.output/
+.nitro/
+frontend/.nitro/
+.tanstack/
+frontend/.tanstack/
+.wrangler/
+frontend/.wrangler/
+.lovable/
+frontend/.lovable/
+
+# Scratch & temporary testing directories
+scratch/
+__agent__/
+*.tmp
+*.temp
+*.bak
+test_*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Large dataset files & model outputs (Offline pipeline)
+data/*
+!data/.gitkeep
+output/*
+!output/.gitkeep
+pipeline/data/
+pipeline/output/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+
+# 3DGS binary assets, point clouds & dynamic scene manifests (served dynamically by static folder)
+static/*
+!static/.gitkeep
+*.splat
+*.ply
+
+# Docker volumes & local data
+pgdata/
+spatial_pgdata/
+
+# General logs and archives
+*.log
+*.zip
+*.tar.gz
+
+# OS and Editor metadata
+.DS_Store
+Thumbs.db
+.vscode/
+*.code-workspace
+.idea/
+.kilo/
+
+

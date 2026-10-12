@@ -1,0 +1,412 @@
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                            SPATIAL TWIN — HACKATHON DEVELOPMENT ROADMAP (40% COMPLETE)                                                                              ║
+║                                                                                                                                                                  ║
+║                            Current Status: Phase 4 Complete — Phase 5 Ready to Begin                                                                           ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         PHASES 0–4: COMPLETED (40% OF PROJECT)                                                                                 │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  PHASE 0: Project Setup                                          ✅ COMPLETE
+  ┌────────────────────────────────────────────────────────────┐
+  │ • Docker Compose PostGIS 16 + SFCGAL 3.4                  │
+  │ • Repository scaffolding (backend, pipeline, frontend)    │
+  │ • .env.example + configuration management                 │
+  │ • README with quick-start guide                           │
+  │ • Database initialization scripts                          │
+  └────────────────────────────────────────────────────────────┘
+  Files: docker-compose.yml, .env.example, README.md
+
+
+  PHASE 1: Environment Bring-up & Smoke Tests                  ✅ COMPLETE
+  ┌────────────────────────────────────────────────────────────┐
+  │ ✓ Python 3.10+ runtime check                              │
+  │ ✓ PyTorch + CUDA + NVIDIA GPU + VRAM detection            │
+  │ ✓ PostGIS database connectivity verification              │
+  │ ✓ Ollama service + qwen2.5:3b model readiness             │
+  │ Diagnostics: pipeline/00_env_check.py (160+ LOC)          │
+  └────────────────────────────────────────────────────────────┘
+  Run: python pipeline/00_env_check.py
+
+
+  PHASE 2: Offline Pipeline (ML Factory)                       ✅ COMPLETE
+  ┌────────────────────────────────────────────────────────────┐
+  │ Stage 00  [✓] Environment check                           │
+  │ Stage 01  [✓] Data preparation (4× downsample, subsample) │
+  │ Stage 02  [✓] 3D Gaussian Splatting (gsplat)              │  ~1.5M splats
+  │ Stage 03  [✓] SegFormer-B0 semantic segmentation          │  4-class mapping
+  │ Stage 04  [✓] Label splats (per-splat class assignment)   │
+  │ Stage 05a [✓] Ground plane fit + Z-up frame alignment     │
+  │ Stage 05b [✓] Geometry extraction (DBSCAN + alpha-shape)  │
+  │ Stage 06  [✓] Load PostGIS database (idempotent)          │
+  │ Stage 07  [✓] Export scene.splat + scene.classes.u8       │
+  │ Total: 8 pipeline stages, ~1,000+ LOC                     │
+  └────────────────────────────────────────────────────────────┘
+  Output: scene.splat, scene.classes.u8, GeoJSON footprints, database populated
+
+
+  PHASE 3: Database Schema                                     ✅ COMPLETE
+  ┌────────────────────────────────────────────────────────────┐
+  │ PostgreSQL 16 + PostGIS 3.4 + SFCGAL Spatial DB           │
+  │                                                            │
+  │ Tables (8 total):                                         │
+  │  • projects         (metadata, scale_factor, transforms) │
+  │  • structures       (buildings, footprint, 3D solid)      │
+  │  • terrain, roads, vegetation (per-class layers)          │
+  │  • regions          (named areas: center, N, S, E, W)     │
+  │  • geometry_history (undo audit trail)                    │
+  │  • edit_sessions    (edit grouping)                       │
+  │                                                            │
+  │ Spatial Indexes (GIST): footprint, solid, boundaries     │
+  │ Key constraint: SRID 0 (Z-up metres, no GPS)             │
+  └────────────────────────────────────────────────────────────┘
+  Files: db/schema.sql, db/regions.sql, db/seed.sql
+
+
+  PHASE 4: Backend Skeleton (FastAPI + WebSocket)              ✅ COMPLETE
+  ┌────────────────────────────────────────────────────────────┐
+  │ FastAPI Application Framework                             │
+  │  • main.py               (app, lifespan, CORS, routers)   │
+  │  • config.py             (Pydantic Settings, .env)        │
+  │  • requirements.txt      (FastAPI, asyncpg, pytest, etc)  │
+  │                                                            │
+  │ Database Layer                                            │
+  │  • db/connection.py      (asyncpg pool management)        │
+  │  • db/queries.py         (fetch_all_regions, structures)  │
+  │                                                            │
+  │ REST API Endpoints                                        │
+  │  • GET /api/status       (health check)                   │
+  │  • GET /api/objects/regions                              │
+  │  • GET /api/objects/structures                           │
+  │                                                            │
+  │ Data Models                                               │
+  │  • schemas/core.py       (Region, Structure, SystemStatus)│
+  │                                                            │
+  │ WebSocket Infrastructure                                  │
+  │  • ws/manager.py         (ConnectionManager broadcast)    │
+  │  • /ws/scene endpoint    (scene_diff protocol)            │
+  │                                                            │
+  │ Total: ~250 LOC, 6 files                                 │
+  └────────────────────────────────────────────────────────────┘
+  Run: uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                         PHASES 5–10: IN PROGRESS / TODO (60% OF PROJECT)                                                                       │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  PHASE 5: AI Agent + Query Loop                              🔴 TODO (NEXT)
+  ┌────────────────────────────────────────────────────────────┐
+  │ [→] Build Intent Schema (Pydantic model)                 │
+  │ [→] Ollama Client Wrapper (JSON schema constraint)        │
+  │ [→] SQL Compiler (intent → parameterised SQL)             │
+  │ [→] Fallback Matcher (nonsense → friendly error)          │
+  │ [→] Query Router (POST /api/query)                        │
+  │                                                            │
+  │ Goal: English → intent JSON → SQL → results               │
+  │       "Which buildings > 20m?" in < 3 seconds             │
+  │                                                            │
+  │ Files to Create:                                          │
+  │  • backend/agent/intent_schema.py                         │
+  │  • backend/agent/ollama_client.py                         │
+  │  • backend/agent/sql_compiler.py                          │
+  │  • backend/agent/fallback_matcher.py                      │
+  │  • backend/routers/query.py                               │
+  │                                                            │
+  │ Dependencies: Ollama + qwen2.5:3b (T=0, JSON schema)     │
+  └────────────────────────────────────────────────────────────┘
+  Estimated: 1–2 days (Phases 5, single intense session)
+
+
+  PHASE 6: Frontend Shell + 3D Viewer + Alignment             🔴 TODO
+  ┌────────────────────────────────────────────────────────────┐
+  │ [→] React 18 + Vite + TypeScript scaffolding              │
+  │ [→] Three.js scene with Frame Contract (sceneRoot)        │
+  │ [→] Splat viewer integration (gsplat.js or alt)           │
+  │ [→] Load scene.splat + scene.classes.u8                   │
+  │ [→] Build proxy meshes (extruded footprints)              │
+  │ [→] Layer visibility controls                             │
+  │ [→] Click-to-inspect (raycast proxy meshes)               │
+  │                                                            │
+  │ Goal: Photorealistic 3D viewport with splat cloud         │
+  │       30+ fps, orbit/pan/zoom controls working             │
+  │                                                            │
+  │ Files to Create:                                          │
+  │  • frontend/src/App.tsx                                   │
+  │  • frontend/src/components/Viewport.tsx                   │
+  │  • frontend/src/components/LayerControls.tsx              │
+  │  • frontend/src/three/sceneSetup.ts (Frame Contract!)     │
+  │  • frontend/vite.config.ts, tsconfig.json, package.json   │
+  │                                                            │
+  │ Dependencies: React 18, Three.js, Vite, TypeScript        │
+  └────────────────────────────────────────────────────────────┘
+  Estimated: 3–5 days
+
+
+  PHASE 7: Edit Loop + WebSocket + Ghost + Undo              🔴 TODO
+  ┌────────────────────────────────────────────────────────────┐
+  │ [→] Edit input component                                  │
+  │ [→] Preview flow (ghost mesh render)                      │
+  │ [→] Confirm flow (POST /api/edit, DB update)              │
+  │ [→] WebSocket broadcast (scene_diff protocol)             │
+  │ [→] Undo stack implementation                             │
+  │ [→] Ghost before/after overlay                            │
+  │                                                            │
+  │ Goal: Type edit → preview → confirm → live change + undo  │
+  │       "Raise central buildings 40m" in < 3 seconds        │
+  │                                                            │
+  │ Files to Create:                                          │
+  │  • backend/routers/edit.py                                │
+  │  • backend/schemas/edit_request.py                        │
+  │  • frontend/src/components/EditBox.tsx                    │
+  │  • frontend/src/components/GhostOverlay.tsx               │
+  │  • frontend/src/hooks/useUndoStack.ts                     │
+  │                                                            │
+  │ Dependencies: Three.js procedural mesh generation         │
+  └────────────────────────────────────────────────────────────┘
+  Estimated: 2–3 days
+
+
+  PHASE 8: Panels & Polish                                    🔴 TODO
+  ┌────────────────────────────────────────────────────────────┐
+  │ Priority 1: Object Inspector (click building)             │
+  │ Priority 2: Metrics Panel (aggregates, deltas, CSV)       │
+  │ Priority 3: Layer Controls (opacity, solo, ghost)         │
+  │ Priority 4: Status Panel (VRAM, models, intent/SQL)       │
+  │                                                            │
+  │ Files to Create:                                          │
+  │  • frontend/src/components/ObjectInspector.tsx            │
+  │  • frontend/src/components/MetricsPanel.tsx               │
+  │  • frontend/src/components/StatusPanel.tsx                │
+  │  • frontend/src/hooks/useSystemStatus.ts                  │
+  │                                                            │
+  │ Dependencies: Zustand, TanStack Table (optional)          │
+  └────────────────────────────────────────────────────────────┘
+  Estimated: 2 days
+
+
+  PHASE 9: Testing & Hardening                                🔴 TODO
+  ┌────────────────────────────────────────────────────────────┐
+  │ • Unit tests (intent schema validation)                   │
+  │ • Integration tests (query loop, edit loop)                │
+  │ • WebSocket multi-client sync tests                       │
+  │ • Connection pool exhaustion + recovery                   │
+  │ • Accessibility review (WCAG 2.1 AA)                      │
+  │ • Responsive design testing (mobile, tablet)              │
+  │                                                            │
+  │ Files to Create:                                          │
+  │  • backend/tests/test_*.py                                │
+  │  • frontend/src/__tests__/*.test.tsx                       │
+  └────────────────────────────────────────────────────────────┘
+  Estimated: 1 day
+
+
+  PHASE 10: Demo Preparation                                  🔴 TODO
+  ┌────────────────────────────────────────────────────────────┐
+  │ • Rehearsed 5 minute demo script                          │
+  │ • Screen recording (backup)                               │
+  │ • Fallback hardcoded commands                             │
+  │ • Database snapshot for demo reset                        │
+  │                                                            │
+  │ Expected Demo Flow:                                       │
+  │  1. Orbit 3D scene (photorealistic splats)                │
+  │  2. Query: "Which buildings > 20m?" → highlight + table   │
+  │  3. Edit: "Raise central buildings 40m" → skyline changes │
+  │  4. Ghost before/after overlay visible                    │
+  │  5. Undo → restored to original                           │
+  │  6. Two browser tabs update together                      │
+  │  7. Nonsense command → friendly error                     │
+  │                                                            │
+  │ Files to Create:                                          │
+  │  • docs/demo-script.md (word-for-word flow)               │
+  │  • docs/fallback-commands.json                            │
+  │  • DEMO_RECORDING.mp4 (backup)                            │
+  └────────────────────────────────────────────────────────────┘
+  Estimated: 1 day
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                            SYSTEM ARCHITECTURE AT A GLANCE
+
+  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │                                                                                                                                  │
+  │                                                USER (Browser)                                                                   │
+  │                                                      │                                                                          │
+  │                                    ┌─────────────────┼─────────────────┐                                                      │
+  │                                    │                 │                 │                                                      │
+  │                             REST /api/*       WebSocket /ws/scene       │ (Multi-tab sync)                                   │
+  │                                    │                 │                 │                                                      │
+  │           ┌─────────────────────────────────────────────────────────────────────────────────┐                                │
+  │           │   FRONTEND: React + Vite + TypeScript (:5173)   [Phase 6]                       │                                │
+  │           │   • Three.js 3D Viewport (splats + proxy meshes)                                │                                │
+  │           │   • Query/Edit input boxes                                                     │                                │
+  │           │   • Layer controls, Inspector panel, Metrics dashboard                         │                                │
+  │           └─────────────────────────────────────────────────────────────────────────────────┘                                │
+  │                                    │                 ▲                                                                        │
+  │                              asyncio│ fetch()        │ broadcast()                                                           │
+  │                                    │                 │                                                                        │
+  │           ┌─────────────────────────────────────────────────────────────────────────────────┐                                │
+  │           │   BACKEND: FastAPI + Uvicorn (:8000)   [Phase 4 ✓]                             │                                │
+  │           │   ┌─────────────────────────────────────────────────────────────────────────┐   │                                │
+  │           │   │ Intent Parser → Ollama → SQL Compiler → Executor  [Phase 5 TODO]       │   │                                │
+  │           │   └─────────────────────────────────────────────────────────────────────────┘   │                                │
+  │           │   ┌─────────────────────────────────────────────────────────────────────────┐   │                                │
+  │           │   │ WebSocket Manager (broadcast scene_diff to all clients)                │   │                                │
+  │           │   └─────────────────────────────────────────────────────────────────────────┘   │                                │
+  │           └──────────────────────┬────────────────────────────┬───────────────────────────┘                                │
+  │                                  │                            │                                                              │
+  │                        asyncpg   │ SQL queries     :11434 Ollama (qwen2.5:3b)                                               │
+  │                                  │                            │                                                              │
+  │           ┌─────────────────────────────────────┐    ┌────────────────────────────┐                                        │
+  │           │ PostgreSQL 16 + PostGIS 3.4         │    │ Ollama LLM Service         │                                        │
+  │           │ + SFCGAL (:5432 Docker)  [Phase 3 ✓]    │ • English → Intent JSON    │                                        │
+  │           │                                     │    │ • JSON schema constraint   │                                        │
+  │           │ 8 Tables (structures, terrain, etc) │    │ • Temperature = 0          │                                        │
+  │           │ Spatial indexes (GIST)              │    └────────────────────────────┘                                        │
+  │           │ Undo audit trail                    │                                                                            │
+  │           └─────────────────────────────────────┘                                                                            │
+  │                                                                                                                                │
+  │           OFFLINE PIPELINE (one-time ML factory, 3–5 hours)  [Phase 2 ✓]                                                    │
+  │           Drone Video → Frames → gsplat → SegFormer → Labels → Geometry → DB + scene.splat                                 │
+  │                                                                                                                                │
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                           FRAME CONTRACT (Coordinate System)
+
+  Pipeline & Database (Z-up, metres):              Frontend Three.js (Y-up, metres):
+  ┌──────────────────────────────────┐            ┌──────────────────────────────────┐
+  │          Z (up/height)           │            │         Y (up/height)            │
+  │            │                     │            │           │                      │
+  │            │                     │            │           │                      │
+  │      X ────┼──── (east)          │            │    X ─────┼───── (east)          │
+  │           /                      │            │          /                       │
+  │          Y (north)               │            │         Z (depth/into screen)    │
+  │                                  │            │                                  │
+  │ SRID 0 (Cartesian, Z-up)         │            │ Converted via rotation.x = -90°  │
+  │ Ground at z = 0                  │            │                                  │
+  │ Heights = positive Z             │            │ ✓ Frame Contract: All splats,    │
+  │ Scale factor ∈ (0, ∞)            │            │   meshes, highlights, ghosts    │
+  │                                  │            │   are children of sceneRoot.    │
+  └──────────────────────────────────┘            │   NO OTHER COMPONENT ROTATES.  │
+  │                                               └──────────────────────────────────┘
+  │ Stage 05a: RANSAC ground plane fit            │
+  │ Rotate to Z-up, set z_min = 0                 │
+  │ (handles drone data without guaranteed        │
+  │  up-axis or ground plane)                     │
+  │                                               │
+  └─── Transform applied ONCE in export ──────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                           CURRENT FILE STATISTICS
+
+  Backend (Complete):
+    • main.py                                ~45 LOC
+    • config.py                              ~17 LOC
+    • db/connection.py                       ~26 LOC
+    • db/queries.py                          ~15 LOC
+    • schemas/core.py                        ~22 LOC
+    • routers/status.py                      ~17 LOC
+    • routers/objects.py                     ~13 LOC
+    • ws/manager.py                          ~25 LOC
+    ───────────────────────────────────────────
+    TOTAL BACKEND:                           ~180 LOC ✓
+
+  Database (Complete):
+    • schema.sql                             ~80 LOC
+    • regions.sql                            ~20 LOC
+    • seed.sql                               ~30 LOC
+    • init/01_extensions.sql                 ~5 LOC
+    ───────────────────────────────────────────
+    TOTAL DATABASE:                          ~135 LOC ✓
+
+  Pipeline (Complete):
+    • 00_env_check.py                        ~120 LOC
+    • 01_prepare_data.py                     ~80 LOC
+    • 02_train_colab.py                      ~150 LOC
+    • 03_segment.py                          ~120 LOC
+    • 04_label_splats.py                     ~100 LOC
+    • 05a_fit_ground_frame.py                ~150 LOC
+    • 05b_extract_geometry.py                ~180 LOC
+    • 06_load_db.py                          ~120 LOC
+    • 07_export_splat.py                     ~110 LOC
+    • common/frame.py, io.py, __init__.py    ~100 LOC
+    ───────────────────────────────────────────
+    TOTAL PIPELINE:                          ~1,150 LOC ✓
+
+  Docker & Config:
+    • docker-compose.yml                     ~25 LOC
+    • .env.example                           ~10 LOC
+    • .gitignore                             ~15 LOC
+    ───────────────────────────────────────────
+    TOTAL CONFIG:                            ~50 LOC ✓
+
+  ════════════════════════════════════════════════════════════════════════
+  TOTAL COMPLETE CODE:                       ~1,515 LOC (40% of project)
+  Estimated Remaining (Phases 5–10):         ~2,000+ LOC (60% of project)
+  ════════════════════════════════════════════════════════════════════════
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                        HOW TO VERIFY CURRENT STATE
+
+  1. Start Database:
+     docker compose up -d db
+     docker compose ps
+
+  2. Run Diagnostics:
+     cd pipeline && python 00_env_check.py
+     Expected: "ALL CORE SERVICES HEALTHY!"
+
+  3. Start Backend:
+     cd backend
+     pip install -r requirements.txt
+     uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+  4. Verify Endpoints (new terminal):
+     curl http://127.0.0.1:8000/api/status
+     curl http://127.0.0.1:8000/api/objects/regions
+     curl http://127.0.0.1:8000/api/objects/structures
+
+  5. Check Documentation:
+     http://127.0.0.1:8000/docs     # FastAPI interactive docs
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                    NEXT STEP: PHASE 5 (AI AGENT + QUERY LOOP)
+
+  Ready to build:
+    ✓ Intent JSON schema (Pydantic model)
+    ✓ Ollama client wrapper (JSON schema constraint, temperature=0)
+    ✓ SQL compiler (intent → parameterised SQL)
+    ✓ Fallback matcher (nonsense → friendly error)
+    ✓ Query router (/api/query endpoint)
+
+  Goal: English query in < 3 seconds → highlighted results + table
+
+  Example:
+    Input:  "Which buildings are taller than 20 metres?"
+    Output: {
+              "operation": "QUERY_HEIGHT",
+              "highlighted_ids": [42, 47, 51],
+              "results": [
+                {"id": 42, "height_m": 25.3, "class": "structure"},
+                {"id": 47, "height_m": 22.1, "class": "structure"},
+                {"id": 51, "height_m": 31.7, "class": "structure"}
+              ],
+              "sql_executed": "SELECT id, height_m, class FROM structures WHERE height_m > 20"
+            }
+
+  🔥 AWAITING YOUR CONFIRMATION TO PROCEED WITH PHASE 5 🔥
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+

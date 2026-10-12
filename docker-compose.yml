@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: spatial-twin-db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-spatial_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spatial_twin_secret_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-spatial_twin}
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - spatial_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spatial_user} -d ${POSTGRES_DB:-spatial_twin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  spatial_pgdata:

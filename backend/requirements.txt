@@ -1,0 +1,15 @@
+# Spatial Twin Backend & Agent Dependencies
+fastapi==0.115.11
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+pydantic-settings==2.8.1
+asyncpg==0.30.0
+httpx==0.28.1
+python-dotenv==1.0.1
+websockets==15.0
+pytest==8.3.5
+pytest-asyncio==0.25.3
+python-multipart==0.0.32
+av==18.1.0
+kaggle==2.2.4
+opencv-python-headless>=4.8.0

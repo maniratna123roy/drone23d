@@ -1,0 +1,144 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Spatial intelligence design system.
+ * Near-black ground, off-white type, muted gray secondary, one cyan accent.
+ * All colors are oklch semantic tokens — never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-dim: var(--accent-dim);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 0.25rem;
+
+  --background: oklch(0.19 0.025 174);
+  --foreground: oklch(0.94 0.025 88);
+  --surface: oklch(0.225 0.027 174);
+  --surface-raised: oklch(0.26 0.029 174);
+
+  --card: oklch(0.225 0.027 174);
+  --card-foreground: oklch(0.94 0.025 88);
+  --popover: oklch(0.225 0.027 174);
+  --popover-foreground: oklch(0.94 0.025 88);
+
+  --primary: oklch(0.79 0.09 178);
+  --primary-foreground: oklch(0.19 0.025 174);
+  --secondary: oklch(0.29 0.032 174);
+  --secondary-foreground: oklch(0.92 0.024 88);
+
+  --muted: oklch(0.275 0.026 174);
+  --muted-foreground: oklch(0.7 0.025 112);
+
+  --accent: oklch(0.79 0.09 178);
+  --accent-foreground: oklch(0.19 0.025 174);
+  --accent-dim: oklch(0.54 0.065 178);
+
+  --destructive: oklch(0.62 0.18 28);
+  --destructive-foreground: oklch(0.97 0.02 88);
+
+  --border: oklch(0.34 0.03 174);
+  --border-strong: oklch(0.48 0.035 164);
+  --input: oklch(0.34 0.03 174);
+  --ring: oklch(0.79 0.09 178);
+
+  --grid-line: oklch(0.32 0.03 174);
+  --shadow-glow: 0 0 60px -12px oklch(0.79 0.09 178 / 0.3);
+  --gradient-fade: linear-gradient(
+    to bottom,
+    transparent,
+    var(--background) 85%
+  );
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: oklch(0.8 0.105 196 / 0.28);
+  }
+}
+
+@utility label-tech {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+@utility rule-h {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--grid-line) 12%,
+    var(--grid-line) 88%,
+    transparent
+  );
+}
+
+@utility grid-backdrop {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: radial-gradient(ellipse at center, black, transparent 78%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

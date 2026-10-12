@@ -1,0 +1,2 @@
+# Backend API & WebSocket Server
+Directory reserved for FastAPI application, routers, Pydantic schemas, database clients, and tests.
