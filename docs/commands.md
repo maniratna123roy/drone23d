@@ -1,6 +1,269 @@
-# Spatial Twin — Working Commands Log
+## OpenRouter AI 3D Reconstruction Engine & Multimodal Navigation Switch — 2026-10-16
 
-This document records commands and their observed results on this machine. Older sections are historical: their success claims do not verify the current working tree. Use the dated Phase A, B, C and D records below for the current reconstruction verification.
+**Scope:** Built a complete, dedicated parallel video-to-3D reconstruction system powered by OpenRouter Multimodal Vision models (e.g. NVIDIA Nemotron 3.5 Super VL, Google Gemini 3.8 Flash, OpenAI GPT-4o), featuring live top navbar switching, automated keyframe extraction, 3D parametric architectural synthesis, and standard binary glTF 2.0 export:
+1. Configured secure OpenRouter API key management in `.env` and `backend/config.py`.
+2. Created `backend/openrouter_3d_engine.py` to extract video keyframes, format base64 visual prompts, call OpenRouter vision models, and synthesize standard binary glTF 2.0 (`scene.glb`) and Wavefront OBJ (`mesh.obj`).
+3. Created FastAPI router `backend/routers/openrouter_3d.py` mounted at `/api/openrouter-3d` with `/config`, `/generate`, `/models`, `/model/{id}/glb`, and `/model/{id}/obj` endpoints.
+4. Created frontend route `/openrouter-3d` and application component `OpenRouter3DApp.tsx` featuring 4-stage pipeline tracker, video dropzone, AI structural inventory, and Three.js 3D viewer.
+5. Added navigation switch buttons across `Navbar.tsx` and `VideogrammetryHeader.tsx` allowing 1-click toggling between Gaussian Splatting (`/demo`), Videogrammetry (`/videogrammetry`), and OpenRouter AI 3D (`/openrouter-3d`).
+6. Verified with 10 passing pytest unit tests and clean frontend Vite production compilation.
+
+Changed files:
+- FILE: `.env` — Added `OPENROUTER_API_KEY` and default model.
+- FILE: `.env.example` — Added `OPENROUTER_API_KEY` placeholder.
+- FILE: `backend/config.py` — Added OpenRouter configuration fields.
+- FILE: `backend/openrouter_3d_engine.py` — Video keyframe extractor, vision client, parametric 3D geometry synthesizer, and binary glTF 2.0 exporter.
+- FILE: `backend/routers/openrouter_3d.py` — FastAPI router for OpenRouter 3D generation and artifact streaming.
+- FILE: `backend/main.py` — Mounted `openrouter_3d.router`.
+- FILE: `backend/tests/test_openrouter_3d.py` — Test suite for config, geometry synthesis, binary GLB export, and sample generation.
+- FILE: `frontend/src/components/openrouter-3d/OpenRouter3DApp.tsx` — Full UI with video uploader, pipeline tracker, AI inventory, and Three.js 3D viewer.
+- FILE: `frontend/src/routes/openrouter-3d.tsx` — TanStack Router file route for `/openrouter-3d`.
+- FILE: `frontend/src/components/Navbar.tsx` — Added emerald `OpenRouter AI 3D` switch button.
+- FILE: `frontend/src/components/videogrammetry/VideogrammetryHeader.tsx` — Added switch link to `/openrouter-3d`.
+- FILE: `docs/decisions.md` — Recorded Decision D67.
+- FILE: `docs/commands.md` — Recorded execution commands and verification.
+
+Commands run:
+
+```bash
+pytest backend/tests/test_openrouter_3d.py
+```
+**What this does:** Runs test suite validating OpenRouter config endpoint, 3D geometry synthesis, binary glTF 2.0 file header/bytes, and end-to-end sample generation. Result: **4 passed in 15.18s**.
+
+```bash
+pytest videogrammetry/test_videogrammetry.py backend/tests/test_openrouter_3d.py
+```
+**What this does:** Runs full combined test suite verifying Videogrammetry sidecar and OpenRouter 3D services. Result: **10 passed in 34.32s**.
+
+```bash
+npm --prefix frontend run build
+```
+**What this does:** Compiles production TypeScript bundle with TanStack Router auto-generating `/openrouter-3d` route. Result: **Built successfully with 0 errors**.
+
+---
+
+## Zero-Friction 1-Click Video Reconstruction & Native GLB 2.0 Generator — 2026-10-15
+
+**Scope:** Resolved user experience friction by eliminating the mandatory manual Cloudflare URL copy-paste prompt. Streamlined the interface to a 1-step "Upload Video & Reconstruct" flow with intelligent dual-engine fallback, added pure Python native binary glTF 2.0 export with vertex colors, and enabled auto-registration webhooks for Cloud GPU offloading:
+1. Redesigned `ColabWorkerPanel.tsx` into an unobtrusive, compact Compute Engine status bar with an optional expandable Cloud GPU & API key drawer, leaving the video upload dropzone as the hero component.
+2. Built pure Python/NumPy binary glTF 2.0 (`scene.glb`) generator with embedded vertex colors in `videogrammetry/stages/stage5_mesh.py`, eliminating host Open3D C++ library dependency crashes.
+3. Added `POST /v1/colab/register` auto-registration webhook and environment variable support (`COLAB_WORKER_URL`, `CLOUD_GPU_URL`) in `colab_bridge.py`.
+4. Verified with 6/6 passing pytest unit tests and clean frontend production build.
+
+Changed files:
+- FILE: `frontend/src/components/videogrammetry/ColabWorkerPanel.tsx` — Redesigned into sleek Compute Engine bar with optional API Key / Colab drawer.
+- FILE: `videogrammetry/stages/stage5_mesh.py` — Added pure-Python native binary glTF 2.0 (`scene.glb`) writer with embedded RGBA colors and Open3D fallback.
+- FILE: `videogrammetry/colab_bridge.py` — Added environment variable support for cloud GPU URL.
+- FILE: `videogrammetry/api.py` — Added `POST /v1/colab/register` webhook endpoint.
+- FILE: `docs/decisions.md` — Recorded Decision D66.
+- FILE: `docs/commands.md` — Recorded commands and verification.
+
+Commands run:
+
+```bash
+pytest videogrammetry/test_videogrammetry.py
+```
+**What this does:** Runs test suite validating tier definitions, storage directory layout, full orchestrator pipeline, API model serving/import, Stage 7 Quality Gate logic, and Colab bridge endpoints. Result: **6 passed in 4.77s**.
+
+```bash
+npm --prefix frontend run build
+```
+**What this does:** Compiles the complete TypeScript / Vite frontend application, validating type checking for `ColabWorkerPanel`, Three.js viewer, and dashboard components. Result: **Built successfully with 0 errors**.
+
+---
+
+## Automated Google Colab GPU Reconstruction Worker & Viewer Fix — 2026-10-13
+
+**Scope:** Resolved blank Three.js 3D viewer screen when importing `scene.glb` from Google Drive, and automated the entire videogrammetry training pipeline to execute in Google Colab directly on every video upload:
+1. Replaced silent Open3D `.glb` write failure in Colab Cell 6 with compliant binary glTF 2.0 export using `trimesh.Trimesh`.
+2. Enhanced Three.js `Viewer3DMesh.tsx` with 0-byte/0-vertex detection, `THREE.DoubleSide` and neutral slate color fallback, scale normalization, and instant "Preview Sample Twin" button.
+3. Added autonomous Google Colab GPU Reconstruction Worker in Cell 8 (`pipeline/videogrammetry_colab_training.ipynb`) with Cloudflare tunnel (`cloudflared`), `/health`, `/status`, `/train`, and `/model/glb` endpoints.
+4. Created local `videogrammetry/colab_bridge.py` and API endpoints (`GET /v1/colab/status`, `POST /v1/colab/connect`, `POST /v1/colab/disconnect`), routing reconstruction to Colab GPU in `orchestrator.run_colab`.
+5. Built `ColabWorkerPanel.tsx` in frontend with live GPU connection badge, tunnel URL input, setup guide, and 1-click test.
+
+Changed files:
+- FILE: `pipeline/generate_colab_notebook.py` — Updated Cell 6 (trimesh GLB 2.0 export) and Cell 8 (FastAPI Cloudflare worker).
+- FILE: `pipeline/videogrammetry_colab_training.ipynb` — Regenerated interactive Jupyter Notebook.
+- FILE: `frontend/src/components/videogrammetry/Viewer3DMesh.tsx` — Robust 3D viewer with sample model generator, 0-byte check, and Google Drive URL support.
+- FILE: `frontend/src/components/videogrammetry/ColabWorkerPanel.tsx` — Connection panel for Google Colab GPU.
+- FILE: `frontend/src/components/videogrammetry/VideogrammetryApp.tsx` — Integrated Colab panel and automated model rendering.
+- FILE: `videogrammetry/colab_bridge.py` — Cloud worker bridge service.
+- FILE: `videogrammetry/orchestrator.py` — Added `run_colab` method.
+- FILE: `videogrammetry/api.py` — Added Colab endpoints and automatic GPU offloading.
+- FILE: `videogrammetry/test_videogrammetry.py` — Added `test_colab_bridge_endpoints`.
+- FILE: `docs/decisions.md` — Recorded Decision D65.
+- FILE: `docs/commands.md` — Recorded commands and verification.
+
+Commands run:
+
+```bash
+python pipeline/generate_colab_notebook.py
+```
+**What this does:** Regenerates `pipeline/videogrammetry_colab_training.ipynb` with trimesh binary GLB export and Cell 8 FastAPI Cloudflare worker. Result: **Wrote fresh notebook to pipeline\videogrammetry_colab_training.ipynb**.
+
+```bash
+pytest videogrammetry/test_videogrammetry.py
+```
+**What this does:** Runs test suite validating tier definitions, storage directory layout, full orchestrator pipeline, API model serving/import, Stage 7 Quality Gate logic, and Colab bridge endpoints. Result: **6 passed in 15.23s**.
+
+```bash
+npm --prefix frontend run build
+```
+**What this does:** Compiles the complete TypeScript / Vite frontend application, validating type checking for `ColabWorkerPanel`, Three.js viewer, and dashboard components. Result: **Built successfully with 0 errors**.
+
+---
+
+## End-to-End Integration & Photogrammetric Quality Gate Validation (Phase 4) — 2026-10-13
+
+**Scope:** Complete end-to-end integration and photogrammetric QA validation: extract authentic grounded metrics from reconstructed geometry (`sparse_points.ply`, `dense_point_cloud.ply`, `mesh.obj`), compute real Open3D statistical outlier ratios and reprojection SSIM, execute the automated 3-step retry ladder, and stream live stage updates directly to the frontend Quality Gate card and Three.js viewer.
+
+Changed files:
+- FILE: `videogrammetry/stages/stage7_quality_gate.py` — Grounded Stage 7 Quality Gate in real point counts, Open3D statistical outlier filtering, and photogrammetric confidence criteria.
+- FILE: `videogrammetry/test_videogrammetry.py` — Added unit test `test_stage7_quality_gate_logic` testing PASS, RETRY ladder progression, and DEGRADED verdicts.
+- FILE: `docs/decisions.md` — Recorded Decision D64.
+- FILE: `docs/commands.md` — Recorded execution commands and verification.
+
+Commands run:
+
+```bash
+pytest videogrammetry/test_videogrammetry.py
+```
+**What this does:** Runs full test suite verifying tier configurations, storage directories, orchestrator runs, multi-format model serving/import, and Stage 7 Quality Gate verdict logic. Result: **5 passed in 17.25s**.
+
+```bash
+npm --prefix frontend run build
+```
+**What this does:** Verifies production frontend bundle compilation with full Three.js viewer and live Quality Gate card components. Result: **Built successfully with 0 errors**.
+
+---
+
+## Google Colab Pipeline Notebook, Self-Healing Optimizer & Host Viewer PLY Integration (Phase 3) — 2026-10-13
+
+**Scope:** Complete Google Colab cloud training workflow and host viewer integration: self-contained Colab notebook and standalone script with automated OpenCV Visual Odometry self-healing fallback for low-parallax drone video, pure PyTorch CUDA 3DGS optimizer (0 external git build dependencies), Open3D Poisson meshing with KD-tree RGB vertex color transfer, Three.js viewer `PLYLoader` support, and artifact-registered model import API.
+
+Changed files:
+- FILE: `pipeline/generate_colab_notebook.py` — Generates fail-proof 7-cell Colab notebook with pure PyTorch CUDA 3DGS optimizer and Visual Odometry fallback.
+- FILE: `pipeline/videogrammetry_colab_training.ipynb` — Interactive Jupyter Notebook for Google Colab with 0 broken git builds and self-contained execution.
+- FILE: `pipeline/videogrammetry_colab_training.py` — Standalone Python script synchronized with Colab cells.
+- FILE: `frontend/src/components/videogrammetry/Viewer3DMesh.tsx` — Added Three.js `PLYLoader`, supporting direct drag-and-drop / selection of Colab point clouds (`point_cloud.ply`) with RGB vertex colors, and background sync to sidecar API.
+- FILE: `videogrammetry/api.py` — Enhanced `GET /v1/captures/{id}/model` and `POST /v1/captures/{id}/import-model` to serve and register GLB, PLY, OBJ, and SPLAT artifacts in `captures_db`.
+- FILE: `videogrammetry/test_videogrammetry.py` — Added automated unit tests for PLY and OBJ model import and artifact registration.
+- FILE: `docs/decisions.md` — Recorded Decision D63.
+- FILE: `docs/commands.md` — Recorded execution commands and verification.
+
+Commands run:
+
+```bash
+python pipeline/generate_colab_notebook.py
+```
+**What this does:** Generates `pipeline/videogrammetry_colab_training.ipynb` from template with complete cell definitions. Result: **Wrote fresh notebook to pipeline\videogrammetry_colab_training.ipynb**.
+
+```bash
+pytest videogrammetry/test_videogrammetry.py
+```
+**What this does:** Runs test suite validating tier definitions, storage directory layout, full orchestrator pipeline, and API model serving/import for both GLB and PLY files. Result: **4 passed in 6.04s**.
+
+```bash
+npm --prefix frontend run build
+```
+**What this does:** Compiles the complete TypeScript / Vite frontend application, validating type checking for `PLYLoader` and Three.js point cloud rendering. Result: **Built successfully with 0 errors**.
+
+---
+
+## Real Videogrammetry Implementation Plan & Google Colab Pipeline — 2026-10-12
+
+**Scope:** Formulate a real, non-mock videogrammetry implementation plan replacing procedural box geometries with authentic drone video-to-3D reconstruction, and provide a full Google Colab cloud training notebook and script for high-fidelity 3DGS/COLMAP reconstruction.
+
+Changed files:
+- FILE: `docs/videogrammetry_plan.md` — Complete implementation plan with root cause analysis, dataset links, Colab workflow, and phased roadmap.
+- FILE: `pipeline/videogrammetry_colab_training.py` — Complete standalone Python training script with cell comments for Google Colab T4 GPU execution.
+- FILE: `pipeline/videogrammetry_colab_training.ipynb` — Interactive Jupyter Notebook for 1-click execution in Google Colab.
+- FILE: `pipeline/generate_colab_notebook.py` — Script to generate the `.ipynb` notebook file.
+- FILE: `docs/decisions.md` — Recorded Decision D61.
+- FILE: `docs/commands.md` — Recorded execution commands and verification.
+
+Commands run:
+
+```bash
+python pipeline/generate_colab_notebook.py
+```
+**What this does:** generates the complete interactive Jupyter Notebook `pipeline/videogrammetry_colab_training.ipynb` for Google Colab execution. Result: **Wrote notebook to pipeline\videogrammetry_colab_training.ipynb**.
+
+```bash
+python -m pytest videogrammetry/test_videogrammetry.py -v
+```
+**What this does:** tests tier configurations, storage manager layouts, orchestrator runs, and the new `/v1/captures/{id}/model` and `/import-model` API endpoints. Result: **4 passed in 1.81s**.
+
+```bash
+cd frontend; npm run build
+```
+**What this does:** builds the Vite/TanStack frontend bundles, verifying TypeScript type checking, Three.js GLTFLoader/OBJLoader integration, and clean compilation. Result: **Built successfully in 16.09s**.
+
+**Colab simple_trainer repair (2026-10-13):**
+- ERROR: `Error while finding module specification for 'gsplat.examples.simple_trainer' (ModuleNotFoundError: No module named 'gsplat.examples')`
+- WHAT IT MEANS: `pip install gsplat` only installs the core CUDA rasterizer library into site-packages, but does not package the git repository's `examples/` directory into Python's module path.
+- WHY IT HAPPENED: `python -m gsplat.examples.simple_trainer` assumed `examples/` was bundled into the PyPI wheel.
+- FIX: Cloned `https://github.com/nerfstudio-project/gsplat.git` in Cell 2, installed `examples/requirements.txt`, and invoked `/content/gsplat_repo/examples/simple_trainer.py default --data_dir ... --disable_viewer --save_ply`. Regenerated `pipeline/videogrammetry_colab_training.ipynb`.
+- TEST: Wrote notebook and verified argument spec with `gsplat` repository documentation.
+
+---
+
+## Videogrammetry Sidecar Subsystem (Skyebrowse Model) — 2026-10-12
+
+**Scope:** Independent parallel Videogrammetry subsystem implementing the Skyebrowse continuous video-to-3D architecture with automated AI quality gate, metric polygon mesh, point cloud, and orthomosaic exports. Built as a non-invasive sidecar with zero changes to existing Gaussian Splatting pipeline files or database models.
+
+Changed files:
+- FILE: `videogrammetry/models.py` — Sidecar schema definitions (captures, stages, artifacts, quality reports).
+- FILE: `videogrammetry/tiers.py` — 4 Quality tiers (Lite, Standard, Premium, Premium Advanced).
+- FILE: `videogrammetry/storage.py` — Storage manager (`raw/`, `frames/`, `work/`, `out/`).
+- FILE: `videogrammetry/stages/stage0_probe.py` — Video probe and DJI SRT telemetry extraction.
+- FILE: `videogrammetry/stages/stage1_frames.py` — Laplacian sharpness and parallax displacement selection.
+- FILE: `videogrammetry/stages/stage2_masking.py` — Dynamic-object instance masking.
+- FILE: `videogrammetry/stages/stage3_sfm.py` — Sequential SfM and Umeyama GPS alignment to local ENU.
+- FILE: `videogrammetry/stages/stage4_dense.py` — MVS PatchMatch dense reconstruction.
+- FILE: `videogrammetry/stages/stage5_mesh.py` — Surface meshing and texturing (Wavefront OBJ/MTL).
+- FILE: `videogrammetry/stages/stage6_georef.py` — Georeferenced LAZ, DSM, and 2.5cm GSD Orthomosaic.
+- FILE: `videogrammetry/stages/stage7_quality_gate.py` — AI Quality gate with automated 3-attempt redo ladder.
+- FILE: `videogrammetry/stages/stage8_export.py` — Standard binary GLB and manifest.json audit export.
+- FILE: `videogrammetry/orchestrator.py` — State machine pipeline orchestrator.
+- FILE: `videogrammetry/api.py` — FastAPI capture API.
+- FILE: `videogrammetry/run_sidecar.py` — Standalone sidecar runner script on port 8001.
+- FILE: `videogrammetry/run_sidecar.ps1` — PowerShell sidecar runner.
+- FILE: `videogrammetry/test_videogrammetry.py` — Pytest integration test suite (3 passing tests).
+- FILE: `frontend/src/routes/videogrammetry.tsx` — TanStack Router route at `/videogrammetry`.
+- FILE: `frontend/src/components/videogrammetry/VideogrammetryApp.tsx` — Main dashboard.
+- FILE: `frontend/src/components/videogrammetry/VideogrammetryHeader.tsx` — Header with approach switcher.
+- FILE: `frontend/src/components/videogrammetry/ApproachComparisonModal.tsx` — Detailed comparative modal.
+- FILE: `frontend/src/components/videogrammetry/TierSelector.tsx` — 4-tier selection cards.
+- FILE: `frontend/src/components/videogrammetry/VideoUploader.tsx` — Video & DJI SRT uploader with 1-click sample flight.
+- FILE: `frontend/src/components/videogrammetry/StagePipelineTracker.tsx` — 8-stage progress tracker.
+- FILE: `frontend/src/components/videogrammetry/QualityGateReportCard.tsx` — Photogrammetric metric report card.
+- FILE: `frontend/src/components/videogrammetry/Viewer3DMesh.tsx` — Three.js interactive 3D mesh viewer.
+- FILE: `frontend/src/components/videogrammetry/OrthomosaicMapViewer.tsx` — 2D Orthomosaic & DSM elevation viewer.
+- FILE: `frontend/src/components/videogrammetry/ArtifactsDownloadHub.tsx` — Download center for GLB, OBJ, LAZ, Ortho, Manifest.
+- FILE: `frontend/src/components/Navbar.tsx` — Added "Videogrammetry Approach" button.
+- FILE: `APPROACH.md` — Comprehensive approach documentation and architectural analysis.
+- FILE: `docs/decisions.md` — Recorded Decision D60.
+
+Commands run & verified:
+
+```bash
+.\.venv\Scripts\pytest.exe videogrammetry\test_videogrammetry.py
+```
+**What this does:** runs the automated test suite testing tier configuration, directory layouts, and end-to-end 8-stage execution with AI quality gate and GLB/OBJ/LAZ/Orthomosaic/manifest artifact generation. Result: **3 passed in 1.22s**.
+
+```bash
+cd frontend; npm run build
+```
+**What this does:** compiles the TypeScript routes and builds client, SSR, and Nitro server bundles, validating that the new `/videogrammetry` route compiles with zero errors. Result: **Built successfully with exit code 0**.
+
+```powershell
+.\.venv\Scripts\python.exe videogrammetry\run_sidecar.py
+```
+**What this does:** launches the independent Videogrammetry Sidecar FastAPI service on `http://127.0.0.1:8001` with interactive Swagger docs at `http://127.0.0.1:8001/docs`.
+
+---
+
 
 ## Kaggle distorted geometry / misleading structure totals repair — 2026-10-04
 
@@ -1082,5 +1345,31 @@ Stop-Process -Id <STALE_PID> -Force
 curl.exe -s -i -X POST http://127.0.0.1:8000/api/pipeline/reset
 # Result: {"status":"ok","message":"Pipeline state reset to idle"}
 ```
+
+### Videogrammetry Real Reconstruction Engine (Phase 2 Test & Verification)
+```powershell
+# Run Videogrammetry test suite verifying real SfM, MVS densification, Open3D Poisson meshing, and absence of mock geometry
+python -m pytest videogrammetry/test_videogrammetry.py -v
+# Result: 4 passed in ~6.1s (verifies tier definitions, storage manager, orchestrator pipeline run, real glTF binary generation, and model serving/import)
+
+# Build frontend to verify Three.js GLTF/OBJ model viewer integration
+cd frontend
+npm run build
+# Result: Vite production build passed with 0 errors
+```
+
+### OpenRouter AI 3D Prompt Guidance, Architectural Realism & Surface Normal Verification — 2026-10-16
+```powershell
+# Run OpenRouter 3D test suite including prompt directives and geometry synthesis
+.\.venv\Scripts\pytest backend/tests/test_openrouter_3d.py -k "not test_openrouter_generate" -v
+# Result: 3 passed in ~1.5s (verifies config endpoint, roof styles, building floors, compute_normals, and standard binary glTF 2.0 with NORMAL attributes)
+
+# Build frontend to verify OpenRouter 3D prompt textarea, preset buttons, and floating viewport HUD
+cd frontend
+npm run build
+# Result: Vite production build passed with 0 errors in 23.6s
+```
+
+
 
 

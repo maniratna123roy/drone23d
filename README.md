@@ -195,47 +195,7 @@ When a drone video is processed, the measurement engine produces comprehensive p
 
 ## 🚀 Quickstart Guide
 
-### Prerequisites
-- **OS:** Windows 10/11 or Linux
-- **GPU:** NVIDIA GPU with CUDA support (e.g. RTX 3050 Laptop 4GB or higher)
-- **Python:** 3.10+ (Python 3.11 recommended)
-- **Node.js:** v20+ (Node v22 recommended)
-- **Docker:** Docker Desktop for PostGIS container
-- **COLMAP:** v4.2+ with CUDA support
 
-### 1. Database Setup (PostGIS 16 + SFCGAL)
-Start the PostGIS container with SFCGAL 3D extension enabled:
-```powershell
-docker-compose up -d
-```
-*Port is configured to `5435` to avoid port collisions with default local Postgres instances.*
-
-### 2. Backend Setup (FastAPI & Pipeline)
-Create a Python virtual environment and install dependencies:
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r backend/requirements.txt
-```
-
-Launch the FastAPI application server:
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
-```
-
-### 3. Frontend Setup (React 19 + TanStack Start + Three.js)
-In a separate terminal, start the Vite development server:
-```powershell
-cd frontend
-npm install
-npm run dev -- --host 127.0.0.1 --port 8080
-```
-Open **[http://localhost:8080/demo](http://localhost:8080/demo)** in Chrome or Edge.
-
-### 4. Local AI Setup (Ollama LLM)
-Ensure Ollama is running with the `qwen2.5:3b` model:
-```powershell
-ollama run qwen2.5:3b
 ```
 
 ---

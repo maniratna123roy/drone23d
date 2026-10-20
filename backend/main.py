@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.db.connection import connect_to_db, close_db_connection
-from backend.routers import status, objects, query, edit, pipeline
+from backend.routers import status, objects, query, edit, pipeline, openrouter_3d
 from backend.ws.manager import manager
 from backend import pipeline_jobs
 
@@ -80,6 +80,7 @@ app.include_router(objects.router)
 app.include_router(query.router)
 app.include_router(edit.router)
 app.include_router(pipeline.router)
+app.include_router(openrouter_3d.router)
 
 # WebSocket endpoint for real-time scene updates
 @app.websocket("/ws/scene")

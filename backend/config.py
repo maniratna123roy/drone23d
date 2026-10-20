@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     PIPELINE_TIMEOUT_SECONDS: int = Field(default=7200, ge=60, le=86400)
     KAGGLE_USERNAME: str = ""
     KAGGLE_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_DEFAULT_MODEL: str = "nvidia/nemotron-3.5-super-vl:free"
 
     @property
     def database_url(self) -> str:

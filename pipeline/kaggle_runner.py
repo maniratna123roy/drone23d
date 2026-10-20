@@ -318,6 +318,33 @@ def safe_kaggle_kernels_output(kernel_id: str, target_dir: Path):
     finally:
         builtins.open = orig_open
 
+def fetch_kaggle_kernel_failure_reason(kernel_id: str) -> Optional[str]:
+    """Fetches kernel logs if available to provide actionable diagnostic details on failure."""
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return None
+    import tempfile
+    temp_dir = Path(tempfile.mkdtemp())
+    try:
+        safe_kaggle_kernels_output(kernel_id, temp_dir)
+        log_files = list(temp_dir.glob("*.log")) + list(temp_dir.glob("*.txt"))
+        for log_f in log_files:
+            content = log_f.read_text(encoding="utf-8", errors="replace")
+            if "Temporary failure in name resolution" in content or "Failed to establish a new connection" in content:
+                return (
+                    "Kaggle kernel has no internet access. Kaggle requires Phone Verification "
+                    "to allow outbound internet access in GPU notebooks. Please verify your phone number in "
+                    "your Kaggle account settings (https://www.kaggle.com/settings -> Phone Verification) and retry."
+                )
+            if "Traceback (most recent call last)" in content:
+                tb_lines = content[content.rfind("Traceback (most recent call last)"):].splitlines()
+                error_summary = " ".join([l.strip() for l in tb_lines[-4:] if l.strip()])
+                return f"Kaggle worker crashed: {error_summary}"
+    except Exception:
+        pass
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    return None
+
 async def run_kaggle_3dgs_job(
     video_path: str | Path,
     progress_callback: Optional[Callable[[str, int, Dict[str, Any]], None]] = None,
@@ -401,7 +428,10 @@ async def run_kaggle_3dgs_job(
                 report("Kaggle 3DGS training complete! Downloading 3D splats...", 90)
                 break
             elif status_str in {"error", "failed"}:
-                error_msg = failure_msg or "Kaggle kernel failed."
+                error_msg = failure_msg
+                if not error_msg or error_msg.lower() == "kaggle kernel failed.":
+                    diag = await asyncio.to_thread(fetch_kaggle_kernel_failure_reason, kernel_id)
+                    error_msg = diag or failure_msg or "Kaggle kernel failed."
                 raise RuntimeError(f"Kaggle execution failed: {error_msg}")
             elif status_str not in {"running", "queued"}:
                 raise RuntimeError(f"Kaggle returned an unexpected worker status: {status_str}")
