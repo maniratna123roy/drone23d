@@ -1,3 +1,22 @@
+## Quickstart Guide Restoration & Videogrammetry Startup Command — 2026-10-21
+
+**Scope:** Restored the missing Quickstart Guide in `README.md` and added startup command documentation for the independent Videogrammetry Sidecar service:
+1. Restored Prerequisites, Database Setup (PostGIS 16), Backend Setup, Frontend Setup, and Ollama Local AI setup in `README.md`.
+2. Added Step 5 to `README.md` documenting the standalone command to launch the Videogrammetry Sidecar service (`.\.venv\Scripts\python.exe videogrammetry\run_sidecar.py` or `powershell -ExecutionPolicy Bypass -File videogrammetry\run_sidecar.ps1`) on port 8001 and access `http://localhost:8080/videogrammetry`.
+3. Added Videogrammetry test suite command (`.\.venv\Scripts\pytest videogrammetry/test_videogrammetry.py`) to the Testing & Quality Gates section.
+
+Changed files:
+- FILE: `README.md` — Restored Quickstart Guide and added Videogrammetry setup/test instructions.
+- FILE: `docs/commands.md` — Recorded command update.
+
+Commands run:
+```bash
+pytest videogrammetry/test_videogrammetry.py
+```
+**What this does:** Validates the complete 8-stage Videogrammetry sidecar pipeline, capture model serving, and quality gate logic. Result: **6 passed in 7.07s**.
+
+---
+
 ## OpenRouter AI 3D Reconstruction Engine & Multimodal Navigation Switch — 2026-10-16
 
 **Scope:** Built a complete, dedicated parallel video-to-3D reconstruction system powered by OpenRouter Multimodal Vision models (e.g. NVIDIA Nemotron 3.5 Super VL, Google Gemini 3.8 Flash, OpenAI GPT-4o), featuring live top navbar switching, automated keyframe extraction, 3D parametric architectural synthesis, and standard binary glTF 2.0 export:
