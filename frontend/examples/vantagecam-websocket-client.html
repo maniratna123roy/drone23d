@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VantageCam WebSocket Progress Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input, button {
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .form-row input {
+            flex: 1;
+        }
+
+        input[type="text"] {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+
+        .status.disconnected {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+
+        .status.connecting {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ff9800;
+        }
+
+        .progress-section {
+            margin-bottom: 30px;
+        }
+
+        .progress-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .stage-item {
+            padding: 15px;
+            border-left: 4px solid #e0e0e0;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background: #f9f9f9;
+            transition: all 0.3s;
+        }
+
+        .stage-item.running {
+            border-left-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .stage-item.complete {
+            border-left-color: #4caf50;
+            background: #f1f8f4;
+        }
+
+        .stage-item.error {
+            border-left-color: #f44336;
+            background: #fef5f5;
+        }
+
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .stage-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stage-duration {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .stage-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .stage-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .messages {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: "Monaco", "Courier New", monospace;
+            color: #666;
+        }
+
+        .message {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-left: 3px solid #e0e0e0;
+            border-radius: 2px;
+        }
+
+        .message.info { border-left-color: #2196f3; }
+        .message.success { border-left-color: #4caf50; }
+        .message.error { border-left-color: #f44336; }
+        .message.warning { border-left-color: #ff9800; }
+
+        .summary {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .summary h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .summary-value {
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 VantageCam WebSocket Monitor</h1>
+            <p>Real-time pipeline progress streaming</p>
+        </div>
+
+        <div class="content">
+            <!-- Connection Control -->
+            <div class="form-group">
+                <label>Capture ID</label>
+                <div class="form-row">
+                    <input 
+                        type="text" 
+                        id="captureId" 
+                        placeholder="e.g., cap_20261021_120000_abcd1234"
+                        value="cap_20261021_120000"
+                    >
+                    <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="status disconnected" id="status">
+                <strong>Status:</strong> <span id="statusText">Disconnected</span>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section">
+                <h2>Pipeline Progress</h2>
+                <div id="stagesContainer"></div>
+            </div>
+
+            <!-- Summary -->
+            <div class="summary" id="summary" style="display: none;">
+                <h3>Pipeline Summary</h3>
+                <div class="summary-row">
+                    <span class="summary-label">Total Duration</span>
+                    <span class="summary-value" id="totalDuration">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Quality Verdict</span>
+                    <span class="summary-value" id="verdict">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Artifacts</span>
+                    <span class="summary-value" id="artifactCount">-</span>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="progress-section" style="margin-top: 30px;">
+                <h2>Live Feed</h2>
+                <div class="messages" id="messages"></div>
+                <button onclick="clearMessages()" style="margin-top: 10px; width: 100%;">Clear Messages</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let stageData = {};
+        let isConnected = false;
+
+        const STAGES = [
+            "probe", "frames", "masking", "sfm", "dense",
+            "mesh", "splats", "georef", "quality_gate", "export"
+        ];
+
+        function updateStatus(text, className) {
+            const statusEl = document.getElementById("status");
+            const statusText = document.getElementById("statusText");
+            statusEl.className = `status ${className}`;
+            statusText.textContent = text;
+        }
+
+        function addMessage(text, type = "info") {
+            const messagesEl = document.getElementById("messages");
+            const msg = document.createElement("div");
+            msg.className = `message ${type}`;
+            msg.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            messagesEl.appendChild(msg);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            // Keep only last 100 messages
+            while (messagesEl.children.length > 100) {
+                messagesEl.removeChild(messagesEl.firstChild);
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById("messages").innerHTML = "";
+        }
+
+        function toggleConnection() {
+            if (isConnected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+
+        async function connect() {
+            const captureId = document.getElementById("captureId").value;
+            if (!captureId) {
+                alert("Please enter a Capture ID");
+                return;
+            }
+
+            updateStatus("Connecting...", "connecting");
+            addMessage(`Connecting to capture ${captureId}...`, "info");
+
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsUrl = `${protocol}//${window.location.host}/ws/vantagecam/${captureId}`;
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    isConnected = true;
+                    document.getElementById("connectBtn").textContent = "Disconnect";
+                    updateStatus(`Connected to ${captureId}`, "connected");
+                    addMessage("Connected! Waiting for updates...", "success");
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleEvent(data);
+                    } catch (e) {
+                        console.error("Failed to parse message:", e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error("WebSocket error:", error);
+                    addMessage("WebSocket error occurred", "error");
+                };
+
+                ws.onclose = () => {
+                    isConnected = false;
+                    document.getElementById("connectBtn").textContent = "Connect";
+                    updateStatus("Disconnected", "disconnected");
+                    addMessage("Disconnected from server", "warning");
+                };
+            } catch (e) {
+                addMessage(`Connection failed: ${e.message}`, "error");
+                updateStatus("Connection failed", "disconnected");
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function handleEvent(data) {
+            const event = data.event;
+            const captureId = data.capture_id;
+
+            switch (event) {
+                case "stage_start":
+                    handleStageStart(data);
+                    break;
+                case "stage_progress":
+                    handleStageProgress(data);
+                    break;
+                case "stage_complete":
+                    handleStageComplete(data);
+                    break;
+                case "stage_error":
+                    handleStageError(data);
+                    break;
+                case "status_update":
+                    handleStatusUpdate(data);
+                    break;
+                case "pipeline_complete":
+                    handlePipelineComplete(data);
+                    break;
+                case "pipeline_failed":
+                    handlePipelineFailed(data);
+                    break;
+                case "pong":
+                    // Heartbeat response
+                    break;
+                default:
+                    console.log("Unknown event:", event);
+            }
+        }
+
+        function handleStageStart(data) {
+            const stageName = data.stage_name;
+            const stageIndex = data.stage_index;
+
+            stageData[stageName] = {
+                index: stageIndex,
+                status: "running",
+                progress: 0,
+                duration: null
+            };
+
+            renderStages();
+            addMessage(`Stage ${stageIndex}: ${stageName} started`, "info");
+        }
+
+        function handleStageProgress(data) {
+            const stageName = data.stage_name;
+            if (stageData[stageName]) {
+                stageData[stageName].progress = data.progress_percent;
+                renderStages();
+            }
+        }
+
+        function handleStageComplete(data) {
+            const stageName = data.stage_name;
+            if (stageData[stageName]) {
+                stageData[stageName].status = "complete";
+                stageData[stageName].progress = 100;
+                stageData[stageName].duration = data.duration_seconds;
+                renderStages();
+            }
+            addMessage(`✓ ${stageName} completed (${data.duration_seconds.toFixed(2)}s)`, "success");
+        }
+
+        function handleStageError(data) {
+            const stageName = data.stage_name;
+            if (stageData[stageName]) {
+                stageData[stageName].status = "error";
+            }
+            renderStages();
+            addMessage(`✗ ${stageName} error: ${data.error_message}`, "error");
+        }
+
+        function handleStatusUpdate(data) {
+            const status = data.status;
+            const progress = data.progress_percent;
+            const currentStage = data.current_stage;
+            addMessage(`Status: ${status} (${progress.toFixed(0)}%) - ${currentStage}`, "info");
+        }
+
+        function handlePipelineComplete(data) {
+            addMessage(`🎉 Pipeline complete! Duration: ${data.total_duration_seconds.toFixed(2)}s`, "success");
+            addMessage(`Quality: ${data.quality_verdict} | Artifacts: ${data.artifacts.length}`, "success");
+
+            // Show summary
+            document.getElementById("totalDuration").textContent = `${data.total_duration_seconds.toFixed(2)}s`;
+            document.getElementById("verdict").textContent = data.quality_verdict;
+            document.getElementById("artifactCount").textContent = data.artifacts.length;
+            document.getElementById("summary").style.display = "block";
+
+            renderStages();
+        }
+
+        function handlePipelineFailed(data) {
+            addMessage(`❌ Pipeline failed: ${data.error_message}`, "error");
+            addMessage(`Attempt ${data.attempt}/${data.max_attempts} - Will retry: ${data.will_retry}`, "warning");
+        }
+
+        function renderStages() {
+            const container = document.getElementById("stagesContainer");
+            container.innerHTML = "";
+
+            STAGES.forEach((stageName, index) => {
+                const data = stageData[stageName] || { status: "pending", progress: 0 };
+                const statusClass = data.status === "pending" ? "pending" : data.status;
+
+                const el = document.createElement("div");
+                el.className = `stage-item ${statusClass}`;
+                el.innerHTML = `
+                    <div class="stage-header">
+                        <span class="stage-name">${index + 1}. ${stageName}</span>
+                        ${data.duration ? `<span class="stage-duration">${data.duration.toFixed(2)}s</span>` : ""}
+                    </div>
+                    <div class="stage-progress-bar">
+                        <div class="stage-progress-fill" style="width: ${data.progress}%"></div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            renderStages();
+            addMessage("Ready to connect. Enter a capture ID and click Connect.", "info");
+        });
+
+        // Send periodic heartbeat
+        setInterval(() => {
+            if (isConnected && ws) {
+                try {
+                    ws.send(JSON.stringify({ type: "ping" }));
+                } catch (e) {
+                    console.error("Failed to send heartbeat:", e);
+                }
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

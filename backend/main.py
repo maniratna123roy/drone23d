@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,7 +9,7 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.db.connection import connect_to_db, close_db_connection
-from backend.routers import status, objects, query, edit, pipeline, openrouter_3d
+from backend.routers import status, objects, query, edit, pipeline, openrouter_3d, vantagecam
 from backend.ws.manager import manager
 from backend import pipeline_jobs
 
@@ -81,6 +82,7 @@ app.include_router(query.router)
 app.include_router(edit.router)
 app.include_router(pipeline.router)
 app.include_router(openrouter_3d.router)
+app.include_router(vantagecam.router)
 
 # WebSocket endpoint for real-time scene updates
 @app.websocket("/ws/scene")
@@ -92,3 +94,35 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+# WebSocket endpoint for VantageCam real-time progress streaming
+@app.websocket("/ws/vantagecam/{capture_id}")
+async def vantagecam_websocket_endpoint(websocket: WebSocket, capture_id: str):
+    """WebSocket endpoint for real-time VantageCam pipeline progress.
+    
+    Clients connect with: ws://localhost:8000/ws/vantagecam/{capture_id}
+    
+    Receives events:
+    - stage_start: Pipeline stage started
+    - stage_progress: Stage progress update (%)
+    - stage_complete: Stage finished with metrics
+    - stage_error: Stage failed with error message
+    - status_update: Overall capture status update
+    - pipeline_complete: Pipeline finished successfully
+    - pipeline_failed: Pipeline failed (may retry)
+    """
+    from backend.ws.vantagecam_manager import vantagecam_ws_manager
+    
+    await vantagecam_ws_manager.connect(capture_id, websocket)
+    try:
+        while True:
+            # Listen for client messages (heartbeat or control)
+            data = await websocket.receive_text()
+            # Echo back for heartbeat validation
+            await websocket.send_json({"event": "pong", "timestamp": datetime.now().isoformat()})
+    except WebSocketDisconnect:
+        await vantagecam_ws_manager.disconnect(capture_id, websocket)
+    except Exception as e:
+        print(f"[WS] Error in VantageCam WebSocket for {capture_id}: {str(e)}")
+        await vantagecam_ws_manager.disconnect(capture_id, websocket)

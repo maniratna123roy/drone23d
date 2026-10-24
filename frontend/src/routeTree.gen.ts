@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as Openrouter3dRouteImport } from './routes/openrouter-3d'
+import { Route as VantagecamRouteImport } from './routes/vantagecam'
 import { Route as VideogrammetryRouteImport } from './routes/videogrammetry'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const Openrouter3dRoute = Openrouter3dRouteImport.update({
   path: '/openrouter-3d',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VantagecamRoute = VantagecamRouteImport.update({
+  id: '/vantagecam',
+  path: '/vantagecam',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VideogrammetryRoute = VideogrammetryRouteImport.update({
   id: '/videogrammetry',
   path: '/videogrammetry',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
   '/openrouter-3d': typeof Openrouter3dRoute
+  '/vantagecam': typeof VantagecamRoute
   '/videogrammetry': typeof VideogrammetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
   '/openrouter-3d': typeof Openrouter3dRoute
+  '/vantagecam': typeof VantagecamRoute
   '/videogrammetry': typeof VideogrammetryRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,29 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
   '/openrouter-3d': typeof Openrouter3dRoute
+  '/vantagecam': typeof VantagecamRoute
   '/videogrammetry': typeof VideogrammetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/demo' | '/openrouter-3d' | '/videogrammetry'
+  fullPaths:
+    '/' | '/demo' | '/openrouter-3d' | '/vantagecam' | '/videogrammetry'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/demo' | '/openrouter-3d' | '/videogrammetry'
-  id: '__root__' | '/' | '/demo' | '/openrouter-3d' | '/videogrammetry'
+  to: '/' | '/demo' | '/openrouter-3d' | '/vantagecam' | '/videogrammetry'
+  id:
+    | '__root__'
+    | '/'
+    | '/demo'
+    | '/openrouter-3d'
+    | '/vantagecam'
+    | '/videogrammetry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DemoRoute: typeof DemoRoute
   Openrouter3dRoute: typeof Openrouter3dRoute
+  VantagecamRoute: typeof VantagecamRoute
   VideogrammetryRoute: typeof VideogrammetryRoute
 }
 
@@ -92,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Openrouter3dRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vantagecam': {
+      id: '/vantagecam'
+      path: '/vantagecam'
+      fullPath: '/vantagecam'
+      preLoaderRoute: typeof VantagecamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/videogrammetry': {
       id: '/videogrammetry'
       path: '/videogrammetry'
@@ -106,6 +130,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DemoRoute: DemoRoute,
   Openrouter3dRoute: Openrouter3dRoute,
+  VantagecamRoute: VantagecamRoute,
   VideogrammetryRoute: VideogrammetryRoute,
 }
 export const routeTree = rootRouteImport

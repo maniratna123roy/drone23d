@@ -105,3 +105,79 @@ CREATE INDEX IF NOT EXISTS idx_terrain_geom ON terrain USING GIST (boundary);
 CREATE INDEX IF NOT EXISTS idx_roads_geom ON roads USING GIST (boundary);
 CREATE INDEX IF NOT EXISTS idx_vegetation_geom ON vegetation USING GIST (boundary);
 
+
+
+-- ============================================================================
+-- VANTAGECAM: Drone Video to 3D Reconstruction Pipeline
+-- ============================================================================
+
+-- 9. VantageCam Capture Jobs (root job metadata)
+CREATE TABLE IF NOT EXISTS vantagecam_captures (
+    id TEXT PRIMARY KEY,                          -- cap_YYYYMMDD_HHMMSS_vantage
+    tier TEXT NOT NULL,                           -- 'lite', 'standard', 'premium', 'premium_advanced'
+    status TEXT NOT NULL DEFAULT 'CREATED',       -- CREATED, UPLOADING, QUEUED, PROCESSING, RETRYING, COMPLETED, DEGRADED, FAILED
+    attempt_count INTEGER DEFAULT 0,              -- current retry attempt (0 to max_attempts)
+    max_attempts INTEGER DEFAULT 1,               -- from tier config
+    video_path TEXT,                              -- path to uploaded/stored video file
+    gps_file_path TEXT,                           -- path to GPS log (optional)
+    storage_dir TEXT NOT NULL,                    -- output/vantagecam/captures/{id}
+    device TEXT DEFAULT 'cpu',                    -- 'cpu', 'cuda:0', etc.
+    error_message TEXT,                           -- last error if status = FAILED
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. Pipeline Stages per Capture (stage history + timing)
+CREATE TABLE IF NOT EXISTS vantagecam_stages (
+    id SERIAL PRIMARY KEY,
+    capture_id TEXT NOT NULL REFERENCES vantagecam_captures(id) ON DELETE CASCADE,
+    stage_name TEXT NOT NULL,                     -- 'probe', 'frames', 'masking', 'sfm', 'dense', 'mesh', 'splats', 'georef', 'quality_gate', 'export'
+    stage_index INTEGER NOT NULL,                 -- 0-9 for ordering
+    status TEXT NOT NULL DEFAULT 'PENDING',       -- PENDING, RUNNING, COMPLETED, SKIPPED, FAILED
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    duration_seconds REAL,
+    error_message TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,           -- stage-specific data (e.g., frame count for 'frames', point count for 'sfm')
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. Artifact References (output files produced by stages)
+CREATE TABLE IF NOT EXISTS vantagecam_artifacts (
+    id SERIAL PRIMARY KEY,
+    capture_id TEXT NOT NULL REFERENCES vantagecam_captures(id) ON DELETE CASCADE,
+    artifact_type TEXT NOT NULL,                  -- 'mesh', 'splat', 'orthomosaic', 'dsm', 'point_cloud', 'manifest', 'quality_report'
+    file_path TEXT NOT NULL,                      -- relative path in capture storage
+    file_size_bytes BIGINT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12. Quality Reports (per-capture metrics and verdict)
+CREATE TABLE IF NOT EXISTS vantagecam_quality_reports (
+    id SERIAL PRIMARY KEY,
+    capture_id TEXT NOT NULL REFERENCES vantagecam_captures(id) ON DELETE CASCADE,
+    registered_frames_ratio REAL,                 -- num registered / num keyframes
+    reprojection_error_px REAL,                   -- mean pixel reprojection error from SfM
+    sparse_points_count INTEGER,                  -- SfM point count
+    dense_points_count INTEGER,                   -- MVS point count
+    mesh_triangles_count INTEGER,                 -- Poisson mesh triangle count
+    splat_count INTEGER,                          -- Gaussian splats count
+    orthomosaic_resolution_cm REAL,               -- cm/pixel
+    dsm_resolution_cm REAL,                       -- cm/pixel
+    ssim_score REAL,                              -- 0-1 rendering quality
+    point_cloud_accuracy_m REAL,                  -- estimated m accuracy
+    verdict TEXT,                                 -- PASS, RETRY, DEGRADED, FAIL
+    verdict_reason TEXT,                          -- explanation of verdict
+    metrics JSONB DEFAULT '{}'::jsonb,            -- all 16 quantitative metrics as JSON
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for VantageCam tables
+CREATE INDEX IF NOT EXISTS idx_vc_captures_status ON vantagecam_captures(status);
+CREATE INDEX IF NOT EXISTS idx_vc_captures_tier ON vantagecam_captures(tier);
+CREATE INDEX IF NOT EXISTS idx_vc_captures_created ON vantagecam_captures(created_at);
+CREATE INDEX IF NOT EXISTS idx_vc_stages_capture ON vantagecam_stages(capture_id);
+CREATE INDEX IF NOT EXISTS idx_vc_stages_status ON vantagecam_stages(status);
+CREATE INDEX IF NOT EXISTS idx_vc_artifacts_capture ON vantagecam_artifacts(capture_id);
+CREATE INDEX IF NOT EXISTS idx_vc_artifacts_type ON vantagecam_artifacts(artifact_type);
+CREATE INDEX IF NOT EXISTS idx_vc_quality_capture ON vantagecam_quality_reports(capture_id);

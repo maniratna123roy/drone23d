@@ -50,6 +50,13 @@ export function Navbar() {
 
         <div className="flex items-center gap-2.5">
           <a
+            href="/vantagecam"
+            className="flex items-center gap-2 border border-blue-500/80 bg-blue-500/10 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-blue-300 uppercase transition-colors hover:bg-blue-600 hover:text-white"
+          >
+            VantageCam 3D
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+          </a>
+          <a
             href="/openrouter-3d"
             className="flex items-center gap-2 border border-emerald-500/80 bg-emerald-500/10 px-3 py-2 font-mono text-[10px] tracking-[0.16em] text-emerald-300 uppercase transition-colors hover:bg-emerald-600 hover:text-white"
           >
